@@ -1,27 +1,187 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Profile</title>
-    <link rel="stylesheet" href="/static/styles.css">
+  <title>Profile</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <style>
+    /* Optional: Additional styling for the device list buttons */
+    .device-btn {
+      margin-left: 10px;
+      padding: 3px 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+    }
+    .edit-btn { background-color: #ff9800; color: white; border: none; }
+    .delete-btn { background-color: #f44336; color: white; border: none; }
+    .save-btn { background-color: #4caf50; color: white; border: none; }
+  </style>
 </head>
 <body>
-    <h1>Your Profile</h1>
-    <div>
-        <h2>Register New Device</h2>
-        <form id="register-device-form">
-            <input type="text" id="device-id" name="device_id" placeholder="Device ID" required>
-            <input type="text" id="device-id" name="MAC Address" placeholder="MAC Address" required>
-            <button type="submit">Register Device</button>
-        </form>
-    </div>
-    <div>
-        <h2>Your Devices</h2>
-        <ul id="device-list"></ul>
-    </div>
-    <div>
-        <a href="/dashboard"><button>Go to Dashboard</button></a>
-        <button onclick="logout()">Logout</button>
-    </div>
-    <script src="/static/script.js"></script>
+  <h1>Your Profile</h1>
+  <div>
+    <h2>Register New Device</h2>
+    <form id="register-device-form">
+      <input type="text" id="mac-address" name="mac_address" placeholder="MAC Address" required>
+      <button type="submit">Register Device</button>
+    </form>
+  </div>
+  <div>
+    <h2>Your Devices</h2>
+    <ul id="device-list"></ul>
+  </div>
+  <div>
+    <a href="/dashboard"><button>Go to Dashboard</button></a>
+    <button onclick="logout()">Logout</button>
+  </div>
+  
+  <script>
+    // Register new device (sends just the MAC address).
+    document.getElementById("register-device-form")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const formData = new FormData(e.target);
+      fetch("/register-device", {
+        method: "POST",
+        body: formData,
+        credentials: "include"
+      })
+      .then(response => {
+        if (response.ok) return response.json();
+        else return response.json().then(err => { throw new Error(err.detail || "Failed to register device"); });
+      })
+      .then(data => {
+        alert(data.message);
+        fetchDevices(); // Refresh the device list
+      })
+      .catch(error => {
+        alert(error.message);
+      });
+    });
+
+    // Dummy logout function.
+    function logout() {
+      window.location.href = "/login";
+    }
+
+    // Function to fetch and display devices.
+    function fetchDevices() {
+      fetch("/devices", { credentials: "include" })
+        .then(response => {
+          if (response.ok) return response.json();
+          else return response.json().then(err => { throw new Error(err.detail || "Failed to fetch devices"); });
+        })
+        .then(data => {
+          const deviceList = document.getElementById("device-list");
+          deviceList.innerHTML = "";
+          data.forEach(device => {
+            const li = document.createElement("li");
+            // Store the device ID in a data attribute.
+            li.dataset.deviceId = device.id;
+            li.innerHTML = `
+              <span class="device-info">Device Name: ${device.device_name} | MAC: <span class="device-mac">${device.mac_address}</span></span>
+              <button class="device-btn edit-btn">Edit</button>
+              <button class="device-btn delete-btn">Delete</button>
+            `;
+            // Attach event listeners for Edit and Delete.
+            li.querySelector(".edit-btn").addEventListener("click", () => editDevice(li));
+            li.querySelector(".delete-btn").addEventListener("click", () => deleteDevice(li));
+            deviceList.appendChild(li);
+          });
+        })
+        .catch(error => {
+          console.error(error);
+          alert(error.message);
+        });
+    }
+
+    // Edit device: allow user to update the MAC address.
+    function editDevice(li) {
+  // Locate the span that displays the MAC address.
+  const macSpan = li.querySelector(".device-mac");
+  if (!macSpan) {
+    console.error("MAC element not found");
+    return;
+  }
+  const oldMac = macSpan.textContent.trim();
+  
+  // Create an input field with the current MAC value.
+  const input = document.createElement("input");
+  input.type = "text";
+  input.value = oldMac;
+  input.style.width = "150px";
+  
+  // Replace the MAC span with the input field.
+  macSpan.parentNode.replaceChild(input, macSpan);
+  
+  // Change the Edit button to a Save button.
+  const editBtn = li.querySelector(".edit-btn");
+  editBtn.textContent = "Save";
+  // Remove the previous click handler (if any) by setting onclick.
+  editBtn.onclick = function() {
+    saveDevice(li, input.value);
+  };
+}
+
+
+    // Save device update.
+    function saveDevice(li, newMac) {
+      const deviceId = li.dataset.deviceId;
+      fetch(`/devices/${deviceId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ new_mac_address: newMac })
+      })
+      .then(response => {
+        if (response.ok) return response.json();
+        else return response.json().then(err => { throw new Error(err.detail || "Failed to update device"); });
+      })
+      .then(data => {
+        alert(data.message);
+        // Replace input with updated text.
+        const input = li.querySelector("input");
+        const span = document.createElement("span");
+        span.className = "device-mac";
+        span.textContent = newMac;
+        input.parentNode.replaceChild(span, input);
+        // Change Save button back to Edit.
+        const saveBtn = li.querySelector(".save-btn");
+        saveBtn.textContent = "Edit";
+        saveBtn.classList.remove("save-btn");
+        saveBtn.classList.add("edit-btn");
+        saveBtn.onclick = () => editDevice(li);
+      })
+      .catch(error => {
+        alert(error.message);
+      });
+    }
+
+    // Delete device.
+    function deleteDevice(li) {
+      const deviceId = li.dataset.deviceId;
+      if (confirm("Are you sure you want to delete this device?")) {
+        fetch(`/devices/${deviceId}`, {
+          method: "DELETE",
+          credentials: "include"
+        })
+        .then(response => {
+          if (response.ok) return response.json();
+          else return response.json().then(err => { throw new Error(err.detail || "Failed to delete device"); });
+        })
+        .then(data => {
+          alert(data.message);
+          li.remove();
+        })
+        .catch(error => {
+          alert(error.message);
+        });
+      }
+    }
+
+    // Load devices on page load.
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchDevices();
+    });
+  </script>
+  <script src="/static/script.js"></script>
 </body>
 </html>
