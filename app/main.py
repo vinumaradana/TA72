@@ -687,4 +687,4 @@ async def weather(city: str = Form(...)):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app="app.main:app", host="0.0.0.0", port=6543, reload=True)
+    uvicorn.run(app="app.main:app", host="0.0.0.0", port=80, reload=True)
