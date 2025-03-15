@@ -228,12 +228,14 @@ async def get_session(session_id: str) -> Optional[dict]:
             SELECT *
             FROM sessions
             WHERE id = %s
-        """,
+            """,
             (session_id,),
         )
         return cursor.fetchone()
     finally:
+        if cursor:
             cursor.close()
+        if connection:
             connection.close()
 
 
