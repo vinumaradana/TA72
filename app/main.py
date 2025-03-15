@@ -129,9 +129,6 @@ async def update_clothes(request: Request, update: ClothesUpdate):
 
 @app.post("/update_temperature_reading")
 async def update_temp(data: SensorData):
-    user_id = await authenticate(request)
-    if user_id is None:
-        return RedirectResponse(url="/login", status_code = 302) 
     create_temperatures_table()
     conn = get_db_connection()
     if conn is None:
