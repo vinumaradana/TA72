@@ -49,7 +49,7 @@ class ClothesUpdate(BaseModel):
     newClothing: ClothingUpdate
 
 class TemperatureData(BaseModel):
-    value: float
+    value: str
     unit: str
     mac_address: str
 
