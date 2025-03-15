@@ -1,0 +1,28 @@
+version: "3.9"
+
+services:
+  db:
+    image: mysql:latest
+    restart: always
+    ports:
+      - "3307:3307"
+    volumes:
+      - ./data:/var/lib/mysql
+    env_file: .env
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u$$MYSQL_USER", "-p$$MYSQL_PASSWORD"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  web:
+    build: .
+    ports:
+      - "6544:80"         # Expose container's port 80 on host's port 6543
+    volumes:
+      - ./app:/app/app     # Match the COPY location from your Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env

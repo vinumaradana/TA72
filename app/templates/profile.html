@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Profile</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Your Profile</h1>
+    <div>
+        <h2>Register New Device</h2>
+        <form id="register-device-form">
+            <input type="text" id="device-id" name="device_id" placeholder="Device ID" required>
+            <input type="text" id="device-id" name="MAC Address" placeholder="MAC Address" required>
+            <button type="submit">Register Device</button>
+        </form>
+    </div>
+    <div>
+        <h2>Your Devices</h2>
+        <ul id="device-list"></ul>
+    </div>
+    <div>
+        <a href="/dashboard"><button>Go to Dashboard</button></a>
+        <button onclick="logout()">Logout</button>
+    </div>
+    <script src="/static/script.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Wardrobe</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <h1>Your Wardrobe</h1>
+    <div>
+        <h2>Add New Item</h2>
+        <form id="add-clothing-form"> <!-- Form to add new items -->
+            <input type="text" id="item-name" name="item_name" placeholder="Item Name" required>
+            <input type="text" id="item-type" name="item_type" placeholder="Item Type" required>
+            <button type="submit">Add Item</button>
+        </form>
+    </div>
+    <div>
+        <h2>Your Items</h2>
+        <ul id="wardrobe-list"></ul> <!-- List to display wardrobe items -->
+    </div>
+    <div>
+        <a href="/dashboard"><button>Go to Dashboard</button></a>
+        <button onclick="logout()">Logout</button>
+    </div>
+    <script src="/static/script.js"></script> <!-- Include the JavaScript file -->
+</body>
+</html>
