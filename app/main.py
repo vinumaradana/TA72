@@ -24,6 +24,12 @@ load_dotenv()
 
 app = FastAPI()
 
+class SensorData(BaseModel):
+   value: float
+   unit: str
+   timestamp: Optional[str] = None
+   mac_address: str
+
 class ClothingDelete(BaseModel):
     clothingType: str
     clothingColor: str
@@ -120,6 +126,26 @@ async def update_clothes(request: Request, update: ClothesUpdate):
         cursor.close()
         conn.close()
 
+@app.post("/update_temperature_reading")
+async def update_temp(data: SensorData):
+    # user_id = await authenticate_user(request)
+    # if user_id is None:
+        # return RedirectResponse(url="/login", status_code = 302)
+    db.create_temperatures_table() 
+    conn = db.get_db_connection()
+    if conn is None:
+        return "Database connection error"
+    try:
+        connectionCursor = conn.cursor()
+        timestamp = data.timestamp if data.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        query = f"INSERT INTO temperatures (value, unit, mac_address, timestamp) VALUES (%s, %s, %s, %s)"
+        connectionCursor.execute(query, (data.value, data.unit, data.mac_address, timestamp))
+        conn.commit()
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print("Database Error:", error_details)  # Log full error details
+        raise HTTPException(status_code=500, detail=f"Error during database operation: {e}")
 
 @app.post("/getairesponse")
 async def getAIResponse(request: Request, prompt: str = Form(...)):
