@@ -51,9 +51,9 @@ def create_temperatures_table():
     try:
         connectionCursor = conn.cursor()
         create_table_query = """
-            CREATE TABLE IF NOT EXISTS temperatures (
+            CREATE TABLE IF NOT EXISTS temperature (
                 id INT AUTO_INCREMENT PRIMARY KEY,
-                value FLOAT NOT NULL,
+                temperature FLOAT NOT NULL,
                 unit VARCHAR(10) NOT NULL,
                 mac_address VARCHAR(255) NOT NULL,
                 timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
@@ -119,15 +119,6 @@ def create_tables():
            FOREIGN KEY (user_id) REFERENCES users (id)
        )
    ''')
-   cursor.execute('''
-       CREATE TABLE IF NOT EXISTS temperature (
-           id INT AUTO_INCREMENT PRIMARY KEY,
-           temperature FLOAT NOT NULL,
-           units VARCHAR(255) NOT NULL,
-           mac_address VARCHAR(255) NOT NULL
-       )
-   ''')
-   print("temperature database initialized")
 
    # Create sensor tables
    for sensor_type in ["temperature", "humidity", "light"]:
