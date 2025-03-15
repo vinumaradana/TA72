@@ -2,7 +2,6 @@ from fastapi import APIRouter, HTTPException, Form, Depends, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from ..database import get_db_connection
-from ..dependencies import get_current_user
 from typing import Optional
 
 router = APIRouter()
@@ -60,7 +59,7 @@ async def get_session(session_id: str) -> Optional[dict]:
 
 
 @router.get("/profile", response_class=HTMLResponse)
-async def get_profile_page(request: Request, user_id: str = Depends(get_current_user)):
+async def get_profile_page(request: Request):
     user_id = authenticate(request)
     print(user_id)
     if user_id is None:
@@ -69,17 +68,19 @@ async def get_profile_page(request: Request, user_id: str = Depends(get_current_
 
 @router.post("/register-device")
 async def register_device(
-    device_id: str = Form(...),
-    user_id: str = Depends(get_current_user)
+    request: Request,
+    mac_address: str = Form(...),
 ):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="login", status_code=302)
     conn = get_db_connection()
     cursor = conn.cursor()
-
     try:
-        cursor.execute('''
+        cursor.execute("""
             INSERT INTO devices (user_id, device_id)
             VALUES (%s, %s)
-        ''', (user_id, device_id))
+        """, (user_id, mac_address))
         conn.commit()
         return {"message": "Device registered successfully"}
     except Exception as e:
@@ -88,42 +89,32 @@ async def register_device(
         cursor.close()
         conn.close()
 
-@router.get("/devices")
-async def get_devices(user_id: str = Depends(get_current_user)):
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
 
-    try:
-        cursor.execute('''
-            SELECT device_id FROM devices WHERE user_id = %s
-        ''', (user_id,))
-        devices = cursor.fetchall()
-        return [{"device_id": device["device_id"]} for device in devices]
-    finally:
-        cursor.close()
-        conn.close()
-
-@router.delete("/delete-device/{device_id}")
+@router.delete("/delete-device/{mac_address}")
 async def delete_device(
-    device_id: str,
-    user_id: str = Depends(get_current_user)
+    request: Request,
+    mac_address: str,
 ):
+    user_id = authenticate(request)
+    print(user_id)
+    if user_id is None:
+        return RedirectResponse(url="login", status_code = 302)
     conn = get_db_connection()
     cursor = conn.cursor()
 
     try:
         # First verify the device belongs to the user
         cursor.execute('''
-            SELECT device_id FROM devices 
-            WHERE user_id = %s AND device_id = %s
-        ''', (user_id, device_id))
+            SELECT mac_address FROM devices 
+            WHERE user_id = %s AND mac_address = %s
+        ''', (user_id, mac_address))
         if not cursor.fetchone():
             raise HTTPException(status_code=404, detail="Device not found or not authorized")
 
         cursor.execute('''
             DELETE FROM devices 
-            WHERE user_id = %s AND device_id = %s
-        ''', (user_id, device_id))
+            WHERE user_id = %s AND mac_address = %s
+        ''', (user_id, mac_address))
         conn.commit()
         return {"message": "Device deleted successfully"}
     finally:
