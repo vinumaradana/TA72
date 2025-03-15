@@ -136,7 +136,7 @@ async def update_temp(data: SensorData):
     try:
         connectionCursor = conn.cursor()
         timestamp = data.timestamp if data.timestamp else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        query = f"INSERT INTO temperatures (value, unit, mac_address, timestamp) VALUES (%s, %s, %s, %s)"
+        query = f"INSERT INTO temperature (value, unit, mac_address, timestamp) VALUES (%s, %s, %s, %s)"
         connectionCursor.execute(query, (data.value, data.unit, data.mac_address, timestamp))
         conn.commit()
     except Exception as e:
