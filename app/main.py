@@ -807,7 +807,7 @@ async def get_temp(mac_address: str):
         conn = get_db_connection()
         # Using a dictionary cursor so that we get results as dicts.
         cursor = conn.cursor(dictionary=True)
-        sql = "SELECT id, temperature, units, mac_address FROM temperature WHERE mac_address = %s"
+        sql = "SELECT id, temperature, unit, mac_address FROM temperature WHERE mac_address = %s"
         cursor.execute(sql, (mac_address,))
         records = cursor.fetchall()
         if not records:
