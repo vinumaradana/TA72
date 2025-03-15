@@ -78,7 +78,16 @@ function fetchDevices() {
             deviceList.innerHTML = ""; // Clear the list
             data.forEach(device => {
                 const li = document.createElement("li");
-                li.textContent = `Device ID: ${device.device_id}`;
+                // Store the device ID if needed:
+                li.dataset.deviceId = device.id;
+                li.innerHTML = `
+                    <span class="device-info">MAC: ${device.mac_address}</span>
+                    <button class="device-btn edit-btn">Edit</button>
+                    <button class="device-btn delete-btn">Delete</button>
+                `;
+                // Attach event listeners for Edit and Delete buttons
+                li.querySelector(".edit-btn").addEventListener("click", () => editDevice(li));
+                li.querySelector(".delete-btn").addEventListener("click", () => deleteDevice(li));
                 deviceList.appendChild(li);
             });
         })
@@ -87,6 +96,8 @@ function fetchDevices() {
             alert(error.message);
         });
 }
+
+
 // Fetch and display wardrobe items
 function fetchWardrobe() {
     fetch("/api/wardrobe", {
@@ -143,33 +154,6 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(data => {
             alert(data.message);
             fetchWardrobe(); // Refresh the wardrobe list
-        })
-        .catch(error => {
-            alert(error.message);
-        });
-    });
-
-    // Register device form
-    document.getElementById("register-device-form")?.addEventListener("submit", (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        fetch("/register-device", {
-            method: "POST",
-            body: formData,
-            credentials: "include"
-        })
-        .then(response => {
-            if (response.ok) {
-                return response.json();
-            } else {
-                return response.json().then(err => {
-                    throw new Error(err.detail || "Failed to register device");
-                });
-            }
-        })
-        .then(data => {
-            alert(data.message);
-            fetchDevices(); // Refresh the device list
         })
         .catch(error => {
             alert(error.message);
