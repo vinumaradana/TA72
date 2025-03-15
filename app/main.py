@@ -126,22 +126,40 @@ async def update_clothes(request: Request, update: ClothesUpdate):
         cursor.close()
         conn.close()
 
+def create_temperatures_table():
+    """Ensures that the temperatures table exists before inserting data."""
+    conn = get_db_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    
+    try:
+        connectionCursor = conn.cursor()
+        create_table_query = """
+            CREATE TABLE IF NOT EXISTS temperatures (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                value FLOAT NOT NULL,
+                unit VARCHAR(10) NOT NULL,
+                mac_address VARCHAR(255) NOT NULL,
+                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
+            );
+        """
+        connectionCursor.execute(create_table_query)
+        conn.commit()
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print("Database Error:", error_details)  # Log full error details
+        raise HTTPException(status_code=500, detail=f"Error creating table: {e}")
+    finally:
+        connectionCursor.close()
+        conn.close()
+
 @app.post("/update_temperature_reading")
 async def update_temp(data: SensorData):
-    # user_id = await authenticate_user(request)
-    # if user_id is None:
-<<<<<<< HEAD
-<<<<<<< HEAD
-        # return RedirectResponse(url="/login", status_code = 302) 
+    user_id = await authenticate_user(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code = 302) 
     create_temperatures_table()
-=======
-        # return RedirectResponse(url="/login", status_code = 302)
-    create_temperatures_table() 
->>>>>>> parent of c9f8a54 (Update main.py)
-=======
-        # return RedirectResponse(url="/login", status_code = 302)
-    create_temperatures_table() 
->>>>>>> parent of c9f8a54 (Update main.py)
     conn = get_db_connection()
     if conn is None:
         return "Database connection error"
