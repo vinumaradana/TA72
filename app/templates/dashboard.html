@@ -1,281 +1,251 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard</title>
-  <link rel="stylesheet" href="/static/styles.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-  <style>
-    /* Basic resets and font */
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: Arial, sans-serif;
-      background: #f5f5f5;
-      color: #333;
-    }
-    header, footer {
-      background-color: #1976d2;
-      color: white;
-      text-align: center;
-      padding: 1rem;
-    }
-    header h1 {
-      margin: 0;
-      font-size: 2rem;
-    }
-    main {
-      width: 90%;
-      max-width: 1000px;
-      margin: 2rem auto;
-      display: flex;
-      flex-direction: column;
-      gap: 2rem;
-    }
-    section {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-    h2 {
-      margin-top: 0;
-      color: #1976d2;
-    }
-    /* Devices list */
-    #device-list {
-      list-style: none;
-      padding: 0;
-    }
-    #device-list li {
-      padding: 0.5rem;
-      border-bottom: 1px solid #ddd;
-    }
-    /* Weather Section */
-    .weather-section form,
-    .weather-section input,
-    .weather-section button {
-      font-size: 1rem;
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-    }
-    /* Sensor Dashboard */
-    .sensor-dashboard label,
-    .sensor-dashboard input,
-    .sensor-dashboard button {
-      font-size: 1rem;
-      margin: 0.5rem 0;
-      padding: 0.5rem;
-    }
-    .chart-section {
-      margin-top: 1rem;
-    }
-    /* Footer buttons */
-    footer a, footer button {
-      margin: 0 0.5rem;
-      padding: 0.5rem 1rem;
-      background: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      color: #1976d2;
-      font-weight: bold;
-      text-decoration: none;
-      transition: background 0.3s;
-    }
-    footer a:hover, footer button:hover {
-      background: #e3f2fd;
-    }
-  </style>
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* Styling for the weather section */
+        .weather-section {
+        margin-top: 30px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        }
+        .weather-section input,
+        .weather-section button {
+        font-size: 1rem;
+        margin: 5px;
+        }
+      /* Optional: Some basic styling for the new section */
+      .sensor-dashboard {
+          margin-top: 30px;
+          padding: 10px;
+          border: 1px solid #ccc;
+      }
+      .sensor-dashboard label,
+      .sensor-dashboard input,
+      .sensor-dashboard button {
+          font-size: 1rem;
+          margin: 5px;
+      }
+    </style>
 </head>
 <body>
-  <header>
     <h1>Welcome to Your Dashboard</h1>
-  </header>
+    <div>
+        <h2>Your Devices</h2>
+        <ul id="device-list"></ul>
+    </div>
+    
+  <!-- Weather Section -->
+  <div class="weather-section">
+    <h2>Weather</h2>
+    <form id="weather-form">
+      <input type="text" id="city" placeholder="Enter a city" required>
+      <input type="submit" value="Submit Query">
+    </form>
+    <div id="weather-result">
+      <p id="location"></p>
+      <p id="condition"></p>
+      <p id="temperature"></p>
+    </div>
+  </div>
+
+<!-- AI Text Generator Section -->
+<div class="w3-row-padding w3-light-grey w3-padding-64 w3-container">
+    <div class="w3-content">
+        <div class="w3-third w3-center">
+            <i class="fa fa-comment w3-padding-64 w3-text-blue w3-margin-right"></i>
+        </div>
+        <div class="w3-twothird">
+            <h2>AI Text Generator</h2>
+            <!-- New PID and email input fields -->
+            <textarea id="aiInput" class="w3-input w3-border" rows="4" placeholder="Enter your text prompt..."></textarea>
+            <button class="w3-button w3-blue w3-margin-top" onclick="generateText()">Generate</button>
+            <p id="aiOutput" class="w3-large"></p>
+        </div>
+    </div>
+</div> 
+
   
-  <main>
-    <!-- Devices Section -->
-    <section id="devices">
-      <h2>Your Devices</h2>
-      <ul id="device-list"></ul>
-    </section>
-
-    <!-- Weather Section -->
-    <section class="weather-section">
-      <h2>Weather</h2>
-      <form id="weather-form">
-        <input type="text" id="city" placeholder="Enter a city" required>
-        <input type="submit" value="Submit Query">
-      </form>
-      <div id="weather-result">
-        <p id="location"></p>
-        <p id="condition"></p>
-        <p id="temperature"></p>
-      </div>
-    </section>
-
-    <!-- AI Text Generator Section -->
-    <section id="ai-text-generator">
-      <h2>AI Text Generator</h2>
-      <textarea id="aiInput" rows="4" placeholder="Enter your text prompt..." style="width: 100%; padding: 0.5rem;"></textarea>
-      <button class="w3-button w3-blue w3-margin-top" onclick="generateText()">Generate</button>
-      <p id="aiOutput" style="font-size: 1.1rem; margin-top: 1rem;"></p>
-    </section>
-
-    <!-- Sensor Data Dashboard Section -->
-    <section class="sensor-dashboard">
-      <h2>Sensor Data Dashboard</h2>
-      <div>
-        <label for="macAddressInput">Enter MAC Address:</label>
-        <input type="text" id="macAddressInput" placeholder="Enter MAC Address">
-        <button id="fetchSensorDataButton">Fetch Sensor Data</button>
-      </div>
-      <div class="chart-section">
-        <canvas id="sensorDataChart"></canvas>
-      </div>
-    </section>
-  </main>
-
-  <footer>
-    <a href="/wardrobe"><button type="button">Go to Wardrobe</button></a>
-    <a href="/profile"><button type="button">Go to Profile</button></a>
-    <button type="button" onclick="logout()">Logout</button>
-  </footer>
-
-  <!-- External and Inline Scripts -->
-  <script src="/static/script.js"></script>
-  <script>
-    // AI Text Generator Function
+    <!-- New Sensor Data Dashboard Section -->
+    <div class="sensor-dashboard">
+        <h2>Sensor Data Dashboard</h2>
+        <div>
+            <label for="macAddressInput">Enter MAC Address:</label>
+            <input type="text" id="macAddressInput" placeholder="Enter MAC Address">
+            <button id="fetchSensorDataButton">Fetch Sensor Data</button>
+        </div>
+        <div class="chart-section">
+            <canvas id="sensorDataChart"></canvas>
+        </div>
+    </div>
+    
+    <div>
+        <a href="/wardrobe"><button>Go to Wardrobe</button></a>
+        <a href="/profile"><button>Go to Profile</button></a>
+        <button onclick="logout()">Logout</button>
+    </div>
+    
+    <script src="/static/script.js"></script>
+    <script>
+    let index = 0;
     async function generateText() {
-      const prompt = document.getElementById("aiInput").value.trim();
-      if (!prompt) {
+    const prompt = document.getElementById("aiInput").value.trim();
+    if (!prompt) {
         alert("Please enter a text prompt.");
         return;
-      }
-      const formData = new FormData();
-      formData.append("prompt", prompt);
-      try {
-        const response = await fetch("/getairesponse", {
-          method: "POST",
-          body: formData
-        });
-        if (!response.ok) throw new Error("Failed to generate text");
-        const data = await response.json();
-        document.getElementById("aiOutput").innerText = data.response;
-      } catch (error) {
-        console.error("Error generating text:", error);
-        alert("Failed to generate text.");
-      }
     }
     
-    // Weather Form Handling
-    document.getElementById("weather-form").addEventListener("submit", async function(event) {
+    // Get the email and PID values from the input fields
+
+    const formData = new FormData();
+    formData.append("prompt", prompt);
+
+    try {
+        const response = await fetch("/getairesponse", {
+            method: "POST",
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to generate text");
+        }
+        
+        const data = await response.json();
+        document.getElementById("aiOutput").innerText = data.response;
+    } catch (error) {
+        console.error("Error generating text:", error);
+        alert("Failed to generate text.");
+    }
+}
+      document.getElementById("weather-form").addEventListener("submit", async function(event) {
       event.preventDefault();
       const city = document.getElementById("city").value;
       if (!city) {
         alert("Please enter a city before submitting!");
         return;
       }
-      document.getElementById("location").textContent = "";
-      document.getElementById("condition").textContent = "";
-      document.getElementById("temperature").textContent = "";
+      const loc = document.getElementById("location");
+      const cond = document.getElementById("condition");
+      const temp = document.getElementById("temperature");
+      // Clear previous results
+      loc.textContent = "";
+      cond.textContent = "";
+      temp.textContent = "";
       try {
         const response = await fetch("/weather", {
           method: "POST",
           body: new URLSearchParams({ city: city }),
           headers: { "Content-Type": "application/x-www-form-urlencoded" }
         });
+        console.log(response);
         if (response.ok) {
           const data = await response.json();
-          document.getElementById("location").textContent = `Location: ${data.location}`;
-          document.getElementById("condition").textContent = `Condition: ${data.condition}`;
-          document.getElementById("temperature").textContent = `Temperature: ${data.temperature}`;
+          loc.textContent = `Location: ${data.location}`;
+          cond.textContent = `Condition: ${data.condition}`;
+          temp.textContent = `Temperature: ${data.temperature}`;
         } else {
           alert("Weather data not found!");
         }
       } catch (error) {
         console.error("Error fetching weather data:", error);
-        document.getElementById("location").textContent = "An error occurred while fetching weather data.";
+        loc.textContent = "An error occurred while fetching weather data.";
       }
     });
     
-    // Sensor Data Chart and Refresh
-    document.addEventListener("DOMContentLoaded", function() {
-      let sensorChart = null;
-      let refreshIntervalId = null;
+        document.addEventListener("DOMContentLoaded", function() {
+            let sensorChart = null;
+            let refreshIntervalId = null;
 
-      async function fetchSensorData(macAddress) {
-        try {
-          const url = `/get_temp/${encodeURIComponent(macAddress)}`;
-          const response = await fetch(url);
-          if (!response.ok) throw new Error(`Failed to fetch sensor data: ${response.statusText}`);
-          return await response.json();
-        } catch (error) {
-          console.error("Error fetching sensor data:", error);
-          return null;
-        }
-      }
-
-      function renderSensorDataChart(sensorData) {
-        sensorData.data.sort((a, b) => a.id - b.id);
-        const labels = sensorData.data.map(item => `#${item.id}`);
-        const dataValues = sensorData.data.map(item => parseFloat(item.temperature));
-        const ctx = document.getElementById('sensorDataChart').getContext('2d');
-        if (sensorChart) sensorChart.destroy();
-        sensorChart = new Chart(ctx, {
-          type: 'line',
-          data: {
-            labels: labels,
-            datasets: [{
-              label: `Temperature (${sensorData.data[0]?.units || "unknown"})`,
-              data: dataValues,
-              borderColor: 'green',
-              fill: false,
-              tension: 0.1
-            }]
-          },
-          options: {
-            plugins: {
-              title: { display: true, text: 'Sensor Temperature Data' },
-              legend: { display: true }
-            },
-            scales: {
-              x: { title: { display: true, text: 'Record ID' } },
-              y: { title: { display: true, text: 'Temperature' } }
+            // Function to fetch sensor data from /get_temp/{mac_address}
+            async function fetchSensorData(macAddress) {
+                try {
+                    const url = `/get_temp/${encodeURIComponent(macAddress)}`;
+                    const response = await fetch(url);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch sensor data: ${response.statusText}`);
+                    }
+                    return await response.json();
+                } catch (error) {
+                    console.error("Error fetching sensor data:", error);
+                    return null;
+                }
             }
-          }
+
+            // Function to render the initial chart
+            function renderSensorDataChart(sensorData) {
+                // Sort the data by id (or any other field representing order)
+                sensorData.data.sort((a, b) => a.id - b.id);
+                const labels = sensorData.data.map(item => `#${item.id}`);
+                const dataValues = sensorData.data.map(item => parseFloat(item.temperature));
+                const ctx = document.getElementById('sensorDataChart').getContext('2d');
+                // If a chart already exists, destroy it before creating a new one
+                if (sensorChart) {
+                    sensorChart.destroy();
+                }
+                sensorChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: `Temperature (${sensorData.data[0]?.units || "unknown"})`,
+                            data: dataValues,
+                            borderColor: 'green',
+                            fill: false,
+                            tension: 0.1
+                        }]
+                    },
+                    options: {
+                        plugins: {
+                            title: { display: true, text: 'Sensor Temperature Data' },
+                            legend: { display: true }
+                        },
+                        scales: {
+                            x: { title: { display: true, text: 'Record ID' } },
+                            y: { title: { display: true, text: 'Temperature' } }
+                        }
+                    }
+                });
+            }
+
+            // Function to update the existing chart with new data
+            function updateSensorChart(sensorData) {
+                sensorData.data.sort((a, b) => a.id - b.id);
+                sensorChart.data.labels = sensorData.data.map(item => `#${item.id}`);
+                sensorChart.data.datasets[0].data = sensorData.data.map(item => parseFloat(item.temperature));
+                sensorChart.update();
+            }
+
+            // Set up event listener for the Fetch Sensor Data button
+            document.getElementById("fetchSensorDataButton").addEventListener("click", async function() {
+                const macAddress = document.getElementById("macAddressInput").value.trim();
+                if (!macAddress) {
+                    alert("Please enter a MAC address");
+                    return;
+                }
+                // Fetch initial sensor data and render the chart
+                const sensorData = await fetchSensorData(macAddress);
+                if (sensorData && sensorData.data && sensorData.data.length > 0) {
+                    renderSensorDataChart(sensorData);
+                    // Clear any previous interval
+                    if (refreshIntervalId) {
+                        clearInterval(refreshIntervalId);
+                    }
+                    // Set up an interval to refresh the chart every 15 seconds
+                    refreshIntervalId = setInterval(async function() {
+                        const newSensorData = await fetchSensorData(macAddress);
+                        if (newSensorData && newSensorData.data && newSensorData.data.length > 0) {
+                            updateSensorChart(newSensorData);
+                        }
+                    }, 15000);
+                } else {
+                    alert("No sensor data found for this MAC address or an error occurred.");
+                }
+            });
         });
-      }
-
-      function updateSensorChart(sensorData) {
-        sensorData.data.sort((a, b) => a.id - b.id);
-        sensorChart.data.labels = sensorData.data.map(item => `#${item.id}`);
-        sensorChart.data.datasets[0].data = sensorData.data.map(item => parseFloat(item.temperature));
-        sensorChart.update();
-      }
-
-      document.getElementById("fetchSensorDataButton").addEventListener("click", async function() {
-        const macAddress = document.getElementById("macAddressInput").value.trim();
-        if (!macAddress) {
-          alert("Please enter a MAC address");
-          return;
-        }
-        const sensorData = await fetchSensorData(macAddress);
-        if (sensorData && sensorData.data && sensorData.data.length > 0) {
-          renderSensorDataChart(sensorData);
-          if (refreshIntervalId) clearInterval(refreshIntervalId);
-          refreshIntervalId = setInterval(async function() {
-            const newSensorData = await fetchSensorData(macAddress);
-            if (newSensorData && newSensorData.data && newSensorData.data.length > 0) {
-              updateSensorChart(newSensorData);
-            }
-          }, 15000);
-        } else {
-          alert("No sensor data found for this MAC address or an error occurred.");
-        }
-      });
-    });
-  </script>
+    </script>
 </body>
 </html>
+
+
