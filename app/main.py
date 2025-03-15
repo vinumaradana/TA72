@@ -197,25 +197,6 @@ async def getAIResponse(request: Request, prompt: str = Form(...)):
             status_code=500
         )
 
-def create_temperatures_table():
-    """Ensures that the temperatures table exists before inserting data."""
-    conn = get_db_connection()
-    if conn is None:
-        raise HTTPException(status_code=500, detail="Database connection error")
-    
-    try:
-        connectionCursor = conn.cursor()
-        create_table_query = """
-            CREATE TABLE IF NOT EXISTS temperatures (
-                id INT AUTO_INCREMENT PRIMARY KEY,
-                value FLOAT NOT NULL,
-                unit VARCHAR(10) NOT NULL,
-                mac_address VARCHAR(255) NOT NULL,
-                timestamp DATETIME DEFAULT CURRENT_TIMESTAMP
-            );
-        """
-        connectionCursor.execute(create_table_query)
-        conn.commit()
 
 async def get_session(session_id: str) -> Optional[dict]:
     """Retrieve session from database."""
