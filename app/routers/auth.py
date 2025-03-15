@@ -190,40 +190,11 @@ async def login(
 def hash_password(password: str) -> str:
     """Hash a password using SHA-256."""
     return hashlib.sha256(password.encode()).hexdigest()
-
-def get_current_user(session_id: str = Cookie(None)):
-    """Retrieve the current user based on the session cookie."""
-    print(session_id)
-    if not session_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-    
-    conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
-    try:
-        # Query the sessions table using the session_id cookie (stored in the 'id' column)
-        cursor.execute("SELECT user_id FROM sessions WHERE id = %s", (session_id,))
-        session = cursor.fetchone()
-        if not session:
-            raise HTTPException(status_code=401, detail="Session not found")
-        
-        user_id = session["user_id"]
-        
-        # Now retrieve the user record from the users table using the user_id
-        cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-        user = cursor.fetchone()
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        
-        # Optionally, you can return the entire user object or just user_id
-        return user
-
-    finally:
-        cursor.close()
-        conn.close()
-
 @router.get("/dashboard", response_class=HTMLResponse)
-async def read_dashboard(request: Request, user: dict = Depends(get_current_user)):
+async def read_dashboard(request: Request):
+    session_id = request.cookies.get("session_id")
+    if not session_id:
+        return RedirectResponse(url="/login", status_code=302)
     # Get the directory of the current file (e.g., /code/app/routers)
     current_dir = os.path.dirname(os.path.abspath(__file__))
     # Go up one level to /code/app and then join dashboard.html
