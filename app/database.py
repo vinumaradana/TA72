@@ -2,7 +2,7 @@ import os
 import mysql.connector
 import pandas as pd
 from dotenv import load_dotenv
-
+from typing import  Optional
 
 # Load environment variables
 load_dotenv()
@@ -10,12 +10,10 @@ load_dotenv()
 
 # MySQL Connection
 db_config = {
-    "host": os.getenv("MYSQL_HOST"),
-    "user": os.getenv("MYSQL_USER"),
-    "password": os.getenv("MYSQL_PASSWORD"),
-    "database": os.getenv("MYSQL_DATABASE"),
-    "port": int(os.getenv("MYSQL_PORT", 3306)),
-    "ssl_ca": os.getenv("MYSQL_SSL_CA")  # Ensure you have this certificate if required
+   "host": os.getenv("MYSQL_HOST"),
+   "user": os.getenv("MYSQL_USER"),
+   "password": os.getenv("MYSQL_PASSWORD"),
+   "database": os.getenv("MYSQL_DATABASE"),
 }
 
 
@@ -23,6 +21,27 @@ def get_db_connection():
    """Creates a new database connection."""
    return mysql.connector.connect(**db_config)
 
+async def get_session(session_id: str) -> Optional[dict]:
+    """Retrieve session from database."""
+    connection = None
+    cursor = None
+    try:
+        connection = get_db_connection()
+        cursor = connection.cursor(dictionary=True)
+        cursor.execute(
+            """
+            SELECT *
+            FROM sessions
+            WHERE id = %s
+        """,
+            (session_id,),
+        )
+        return cursor.fetchone()
+    finally:
+            cursor.close()
+            connection.close()
+
+   
 
 def create_tables():
    """Creates all necessary tables if they don't exist."""
