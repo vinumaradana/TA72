@@ -1,27 +1,386 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Wardrobe</title>
-    <link rel="stylesheet" href="/static/styles.css">
+  <meta charset="UTF-8">
+  <title>Wardrobe</title>
+  <link rel="stylesheet" href="/static/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    /* Global styles */
+    body {
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #333;
+      margin: 0;
+      padding: 0;
+    }
+    header, footer {
+      background-color: #1976d2;
+      color: #fff;
+      text-align: center;
+      padding: 1rem;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 2rem;
+    }
+    main {
+      width: 90%;
+      max-width: 1000px;
+      margin: 2rem auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    section {
+      background: #fff;
+      padding: 1.5rem;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    h2 {
+      margin-top: 0;
+      color: #1976d2;
+    }
+    /* Form styling */
+    form label {
+      display: block;
+      margin-bottom: 0.25rem;
+      font-weight: bold;
+    }
+    form input[type="text"],
+    form input[type="color"],
+    form select,
+    form button {
+      font-size: 1rem;
+      margin: 0.5rem 0;
+      padding: 0.5rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    form button {
+      background-color: #1976d2;
+      color: #fff;
+      cursor: pointer;
+      border: none;
+    }
+    form button:hover {
+      background-color: #1565c0;
+    }
+    /* Table styling for wardrobe items */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+    }
+    table th,
+    table td {
+      border: 1px solid #ddd;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    .color-preview {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      margin-right: 0.5rem;
+    }
+    .action-buttons button {
+      margin-right: 0.5rem;
+      padding: 0.3rem 0.6rem;
+      font-size: 0.9rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .edit-btn {
+      background-color: #ff9800;
+      color: #fff;
+    }
+    .save-btn {
+      background-color: #4caf50;
+      color: #fff;
+    }
+    .delete-btn {
+      background-color: #f44336;
+      color: #fff;
+    }
+    /* Footer links/buttons */
+    footer a, footer button {
+      margin: 0 0.5rem;
+      padding: 0.5rem 1rem;
+      background: #fff;
+      border: none;
+      border-radius: 4px;
+      color: #1976d2;
+      font-weight: bold;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    footer a:hover, footer button:hover {
+      background: #e3f2fd;
+    }
+  </style>
 </head>
 <body>
+  <header>
     <h1>Your Wardrobe</h1>
-    <div>
-        <h2>Add New Item</h2>
-        <form id="add-clothing-form"> <!-- Form to add new items -->
-            <input type="text" id="item-name" name="item_name" placeholder="Item Name" required>
-            <input type="text" id="item-type" name="item_type" placeholder="Item Type" required>
-            <button type="submit">Add Item</button>
-        </form>
-    </div>
-    <div>
-        <h2>Your Items</h2>
-        <ul id="wardrobe-list"></ul> <!-- List to display wardrobe items -->
-    </div>
-    <div>
-        <a href="/dashboard"><button>Go to Dashboard</button></a>
-        <button onclick="logout()">Logout</button>
-    </div>
-    <script src="/static/script.js"></script> <!-- Include the JavaScript file -->
+  </header>
+  
+  <main>
+    <!-- Add New Item Section -->
+    <section id="add-item">
+      <h2>Add New Item</h2>
+      <form id="add-clothing-form">
+        <label for="item-name">Item Name</label>
+        <input type="text" id="item-name" name="item_name" placeholder="Item Name" required>
+        <label for="item-color">Item Color (e.g., #ff0000)</label>
+        <input type="text" id="item-color" name="item_color" placeholder="#ff0000" required>
+        <label for="item-type">Item Type</label>
+        <input type="text" id="item-type" name="item_type" placeholder="Item Type" required>
+        <button type="submit">Add Item</button>
+      </form>
+    </section>
+
+    <!-- Display Wardrobe Items Section -->
+    <section id="wardrobe-items">
+      <h2>Your Items</h2>
+      <table id="wardrobe-table">
+        <thead>
+          <tr>
+            <th>Type</th>
+            <th>Color</th>
+            <th>Size</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tbody">
+          <!-- Wardrobe items will be dynamically inserted here -->
+        </tbody>
+      </table>
+    </section>
+
+    <!-- Navigation and Logout Section -->
+    <section id="navigation">
+      <a href="/dashboard"><button type="button">Go to Dashboard</button></a>
+      <button type="button" onclick="logout()">Logout</button>
+    </section>
+  </main>
+  
+  <footer>
+    <p>&copy; Your Wardrobe App</p>
+  </footer>
+  
+  <!-- Inline JavaScript -->
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      // Lowercase the color input value for consistency.
+      const colorPicker = document.getElementById("item-color");
+      if (colorPicker) {
+        colorPicker.addEventListener("input", () => {
+          colorPicker.value = colorPicker.value.toLowerCase();
+        });
+      }
+      
+      // Function to load wardrobe data from the server.
+      async function loadWardrobe() {
+        try {
+          const response = await fetch("/clothes");
+          if (!response.ok) throw new Error("Failed to fetch clothes");
+          const clothes = await response.json();
+          displayClothes(clothes);
+        } catch (error) {
+          console.error("Error fetching clothes:", error);
+        }
+      }
+      
+      // Function to display clothes in the table.
+      function displayClothes(clothes) {
+        const tbody = document.getElementById("tbody");
+        tbody.innerHTML = ""; // Clear existing content.
+        clothes.forEach(item => {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${item.clothing_name}</td>
+            <td>
+              <span class="color-preview" style="background: ${item.clothing_color};"></span>
+              ${item.clothing_color}
+            </td>
+            <td>${item.clothing_type}</td>
+            <td class="action-buttons">
+              <button class="edit-btn">Edit</button>
+              <button class="save-btn" hidden>Save</button>
+              <button class="delete-btn">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      }
+      
+      // Function to add a new clothing item.
+      async function addClothing(name, color, type) {
+        try {
+          const response = await fetch("/wardrobe", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              clothingName: name,
+              clothingColor: color,
+              clothingType: type
+            }),
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to add clothing: ${response.statusText}`);
+          }
+          console.log("Clothing added successfully");
+          loadWardrobe(); // Refresh the wardrobe list.
+        } catch (error) {
+          console.error("Error adding clothing:", error);
+        }
+      }
+      
+      // Convert an RGB string to HEX format.
+      function rgbToHex(rgb) {
+        const match = rgb.match(/\d+/g);
+        if (!match || match.length < 3) return rgb;
+        const r = parseInt(match[0]).toString(16).padStart(2, "0");
+        const g = parseInt(match[1]).toString(16).padStart(2, "0");
+        const b = parseInt(match[2]).toString(16).padStart(2, "0");
+        return `#${r}${g}${b}`.toLowerCase();
+      }
+      
+      // Handle Edit, Save, and Delete actions.
+      document.getElementById("tbody").addEventListener("click", async (event) => {
+        const row = event.target.closest("tr");
+        if (!row) return;
+        
+        if (event.target.classList.contains("edit-btn")) {
+          editClothing(row);
+        } else if (event.target.classList.contains("save-btn")) {
+          await saveClothing(row);
+        } else if (event.target.classList.contains("delete-btn")) {
+          await deleteClothing(row);
+        }
+      });
+      
+      // Enable editing of a row.
+      function editClothing(row) {
+        const cells = row.querySelectorAll("td");
+        row.dataset.oldType = cells[0].textContent.trim();
+        row.dataset.oldColor = row.querySelector(".color-preview").style.background;
+        row.dataset.oldSize = cells[2].textContent.trim();
+        
+        // Replace text with input fields.
+        cells[0].innerHTML = `<input type="text" class="edit-type" value="${row.dataset.oldType}">`;
+        cells[1].innerHTML = `
+          <input type="color" class="edit-color" value="${rgbToHex(row.dataset.oldColor)}">
+          ${rgbToHex(row.dataset.oldColor)}
+        `;
+        cells[2].innerHTML = `<input type="text" class="edit-size" value="${row.dataset.oldSize}">`;
+        
+        // Toggle button visibility.
+        row.querySelector(".edit-btn").hidden = true;
+        row.querySelector(".save-btn").hidden = false;
+      }
+      
+      // Save updated clothing information.
+      async function saveClothing(row) {
+        const cells = row.querySelectorAll("td");
+        const oldType = row.dataset.oldType;
+        const oldColor = rgbToHex(row.dataset.oldColor);
+        const oldSize = row.dataset.oldSize;
+        
+        const newType = row.querySelector(".edit-type").value;
+        const newColor = row.querySelector(".edit-color").value;
+        const newSize = row.querySelector(".edit-size").value;
+        
+        // Update UI immediately.
+        cells[0].textContent = newType;
+        cells[1].innerHTML = `<span class="color-preview" style="background: ${newColor};"></span>${newColor}`;
+        cells[2].textContent = newSize;
+        
+        const clothingUpdate = {
+          oldClothing: {
+            clothingType: oldType,
+            clothingColor: oldColor,
+            clothingSize: oldSize,
+          },
+          newClothing: {
+            clothingType: newType,
+            clothingColor: newColor,
+            clothingSize: newSize,
+          },
+        };
+        
+        try {
+          const response = await fetch("/wardrobe", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(clothingUpdate),
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to update clothing: ${response.statusText}`);
+          }
+          console.log("Clothing updated successfully");
+        } catch (error) {
+          console.error("Error updating clothing:", error);
+        }
+        
+        // Toggle buttons back.
+        row.querySelector(".edit-btn").hidden = false;
+        row.querySelector(".save-btn").hidden = true;
+      }
+      
+      // Delete a clothing item.
+      async function deleteClothing(row) {
+        const cells = row.querySelectorAll("td");
+        const clothingType = cells[0].textContent.trim();
+        const clothingColor = rgbToHex(row.querySelector(".color-preview").style.background);
+        const clothingSize = cells[2].textContent.trim();
+        if (confirm("Are you sure you want to delete this item?")) {
+          try {
+            const response = await fetch("/wardrobe", {
+              method: "DELETE",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ clothingType, clothingColor, clothingSize })
+            });
+            if (!response.ok) {
+              const errorData = await response.json();
+              alert("Error: " + errorData.detail);
+            } else {
+              alert("Clothing item deleted successfully!");
+              row.remove();
+            }
+          } catch (error) {
+            console.error("Error deleting clothing:", error);
+            alert("An error occurred while deleting the item.");
+          }
+        }
+      }
+      
+      // Handle new item form submission.
+      document.getElementById("add-clothing-form").addEventListener("submit", (event) => {
+        event.preventDefault();
+        const clothingType = document.getElementById("item-name").value;
+        const clothingColor = document.getElementById("item-color").value;
+        const clothingSize = document.getElementById("item-type").value;
+        addClothing(clothingType, clothingColor, clothingSize);
+        event.target.reset();
+      });
+      
+      // Load wardrobe data on page load.
+      loadWardrobe();
+    });
+    
+    // Dummy logout function (replace with your implementation)
+    function logout() {
+      window.location.href = "/login";
+    }
+  </script>
 </body>
 </html>
