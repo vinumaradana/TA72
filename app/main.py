@@ -131,8 +131,8 @@ async def update_temp(data: SensorData):
     # user_id = await authenticate_user(request)
     # if user_id is None:
         # return RedirectResponse(url="/login", status_code = 302)
-    db.create_temperatures_table() 
-    conn = db.get_db_connection()
+    create_temperatures_table() 
+    conn = get_db_connection()
     if conn is None:
         return "Database connection error"
     try:
