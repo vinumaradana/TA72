@@ -10,10 +10,12 @@ load_dotenv()
 
 # MySQL Connection
 db_config = {
-   "host": os.getenv("MYSQL_HOST"),
-   "user": os.getenv("MYSQL_USER"),
-   "password": os.getenv("MYSQL_PASSWORD"),
-   "database": os.getenv("MYSQL_DATABASE"),
+    "host": os.getenv("MYSQL_HOST"),
+    "user": os.getenv("MYSQL_USER"),
+    "password": os.getenv("MYSQL_PASSWORD"),
+    "database": os.getenv("MYSQL_DATABASE"),
+    "port": int(os.getenv("MYSQL_PORT", 3306)),
+    "ssl_ca": os.getenv("MYSQL_SSL_CA")  # Ensure you have this certificate if required
 }
 
 
