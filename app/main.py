@@ -15,13 +15,38 @@ from urllib.request import urlopen
 import json
 
 from .routers import auth, wardrobe, devices
-from .dependencies import get_current_user
 from .database import get_db_connection, create_tables, seed_database
 
 # Load environment variables
 load_dotenv()
 
+
+
 app = FastAPI()
+
+class ClothingDelete(BaseModel):
+    clothingType: str
+    clothingColor: str
+    clothingSize: str
+
+class ClothingDelete(BaseModel):
+    clothingType: str
+    clothingColor: str
+    clothingSize: str
+
+class ClothingItem(BaseModel):
+    clothingName: str
+    clothingColor: str
+    clothingType: str
+
+class ClothingUpdate(BaseModel):
+    clothingType: str   # interpreted as the clothing name
+    clothingColor: str
+    clothingSize: str     # interpreted as the clothing type
+
+class ClothesUpdate(BaseModel):
+    oldClothing: ClothingUpdate
+    newClothing: ClothingUpdate
 
 class TemperatureData(BaseModel):
     value: float
@@ -58,33 +83,39 @@ AITEXT_API_URL = "https://ece140-wi25-api.frosty-sky-f43d.workers.dev/api/v1/ai/
 def hash_password(password: str) -> str:
     """Hash a password using SHA-256."""
     return hashlib.sha256(password.encode()).hexdigest()
-
-def get_current_user(session_id: str = Cookie(None)):
-    """Retrieve the current user based on the session cookie."""
-    if not session_id:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+@app.put("/wardrobe")
+async def update_clothes(request: Request, update: ClothesUpdate):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
     
     conn = get_db_connection()
-    cursor = conn.cursor(dictionary=True)
-    
+    cursor = conn.cursor()
     try:
-        # Query the sessions table using the session_id cookie (stored in the 'id' column)
-        cursor.execute("SELECT user_id FROM sessions WHERE id = %s", (session_id,))
-        session = cursor.fetchone()
-        if not session:
-            raise HTTPException(status_code=401, detail="Session not found")
-        
-        user_id = session["user_id"]
-        
-        # Now retrieve the user record from the users table using the user_id
-        cursor.execute("SELECT * FROM users WHERE id = %s", (user_id,))
-        user = cursor.fetchone()
-        if not user:
-            raise HTTPException(status_code=401, detail="User not found")
-        
-        # Optionally, you can return the entire user object or just user_id
-        return user
-
+        # Update the clothes record for the authenticated user that matches the old clothing details.
+        cursor.execute("""
+            UPDATE clothes
+            SET clothing_name = %s, clothing_color = %s, clothing_type = %s
+            WHERE user_id = %s 
+              AND clothing_name = %s 
+              AND clothing_color = %s 
+              AND clothing_type = %s
+        """, (
+            update.newClothing.clothingType,  # new clothing name
+            update.newClothing.clothingColor,
+            update.newClothing.clothingSize,    # new clothing type
+            user_id,
+            update.oldClothing.clothingType,    # old clothing name
+            update.oldClothing.clothingColor,
+            update.oldClothing.clothingSize       # old clothing type
+        ))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Clothing item not found")
+        return JSONResponse(content={"message": "Clothing updated successfully"})
+    except Exception as e:
+        print(f"❌ Error updating clothing: {e}")
+        raise HTTPException(status_code=400, detail=str(e))
     finally:
         cursor.close()
         conn.close()
@@ -192,9 +223,89 @@ class SensorData(BaseModel):
     unit: str
     timestamp: Optional[str] = None
     device_id: Optional[str] = None
+class DeviceUpdate(BaseModel):
+    new_mac_address: str
+
+@app.put("/devices/{mac_address}")
+async def update_device(mac_address: str, request: Request, update: DeviceUpdate):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            UPDATE devices
+            SET device_id = %s
+            WHERE device_id = %s AND user_id = %s
+        """, (update.new_mac_address, mac_address, user_id))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Device not found")
+        return JSONResponse(content={"message": "Device updated successfully"})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+@app.delete("/devices/{mac_address}")
+async def delete_device(mac_address: str, request: Request):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            DELETE FROM devices
+            WHERE device_id = %s AND user_id = %s
+        """, (mac_address, user_id))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Device not found")
+        return JSONResponse(content={"message": "Device deleted successfully"})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.delete("/wardrobe")
+async def delete_clothing(request: Request, item: ClothingDelete):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            DELETE FROM clothes
+            WHERE user_id = %s 
+              AND clothing_name = %s 
+              AND clothing_color = %s 
+              AND clothing_type = %s
+        """, (user_id, item.clothingType, item.clothingColor, item.clothingSize))
+        conn.commit()
+        if cursor.rowcount == 0:
+            raise HTTPException(status_code=404, detail="Clothing item not found")
+        return JSONResponse(content={"message": "Clothing item deleted successfully!"})
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    finally:
+        cursor.close()
+        conn.close()
+
 
 @app.get("/api/{sensor_type}/count")
-async def get_sensor_count(sensor_type: str, user_id: str = Depends(get_current_user)):
+async def get_sensor_count(request: Request, sensor_type: str):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
     """Returns the number of rows for a given sensor type."""
     if sensor_type not in ["temperature", "humidity", "light"]:
         raise HTTPException(status_code=404, detail="Invalid sensor type")
@@ -205,7 +316,7 @@ async def get_sensor_count(sensor_type: str, user_id: str = Depends(get_current_
     try:
         query = f"""
             SELECT COUNT(*) FROM {sensor_type} s
-            JOIN devices d ON s.device_id = d.device_id
+            JOIN devices d ON s.device_id = d.mac_address
             WHERE d.user_id = %s
         """
         cursor.execute(query, (user_id,))
@@ -215,6 +326,94 @@ async def get_sensor_count(sensor_type: str, user_id: str = Depends(get_current_
         cursor.close()
         conn.close()
 
+@app.get("/clothes")
+async def get_clothes(request: Request):
+    """
+    Fetch all clothing items for a given user_id from the clothes table.
+    
+    :param user_id: The ID of the user whose wardrobe items should be retrieved.
+    :return: A JSON response containing clothing data.
+    """
+    user_id = await authenticate(request)     # authenticate user first
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code = 302)
+    conn = get_db_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    try:
+        cursor = conn.cursor(dictionary=True)  # Ensures results are returned as dictionaries
+        query = "SELECT * FROM clothes WHERE user_id = %s"
+        cursor.execute(query, (user_id,))
+        clothes = cursor.fetchall()
+        if clothes:  # Check if clothes is not empty
+            print("Clothes retrieved successfully:", clothes)
+        else:
+            print("No clothes found for this user.")
+        return JSONResponse(content=clothes)  # Return data as JSON
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        print("Database Error:", error_details)  # Log full error details
+        raise HTTPException(status_code=500, detail=f"Database error: {e}")
+    
+
+    finally:
+        cursor.close()
+        conn.close()
+
+
+@app.post("/wardrobe")
+async def add_to_wardrobe(request: Request, item: ClothingItem):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
+    conn = get_db_connection()
+    if conn is None:
+        raise HTTPException(status_code=500, detail="Database connection error")
+    try:
+        cursor = conn.cursor()
+
+        # Ensure the table exists, and add a primary key if needed.
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS clothes (
+            clothing_id INT AUTO_INCREMENT PRIMARY KEY,
+            user_id INT NOT NULL,
+            clothing_name VARCHAR(255) NOT NULL,
+            clothing_color CHAR(7) NOT NULL,
+            clothing_type VARCHAR(10) NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id)
+        );
+        """)
+        conn.commit()
+
+        # Insert new clothing item with exactly four placeholders.
+        cursor.execute("""
+        INSERT INTO clothes (clothing_name, clothing_color, clothing_type, user_id)
+        VALUES (%s, %s, %s, %s);
+        """, (item.clothingName, item.clothingColor, item.clothingType, user_id))
+        conn.commit()
+
+        # Retrieve the inserted item using the auto-incremented clothing_id.
+        clothing_id = cursor.lastrowid
+        cursor.execute("""
+        SELECT * FROM clothes 
+        WHERE clothing_id = %s
+        """, (clothing_id,))
+        result = cursor.fetchone()  # Store the fetched result
+        if result:
+            print("Insertion successful")
+            return RedirectResponse(url="/wardrobe", status_code=201)
+        else:
+            print("Insertion failed")
+        cursor.close()
+    except mysql.connector.errors.InternalError as e:
+        return JSONResponse(content={"error": "Unread result found. Please check query execution order."}, status_code=500)
+    except Exception as e:
+        print(f"❌ Error updating clothing: {e}")
+        return JSONResponse(content={"error": f"Database error: {str(e)}"}, status_code=500)
+    finally:
+        if conn:
+            conn.close()
 
 
 
@@ -246,8 +445,8 @@ async def get_session_id_by_user_id(user_id: int) -> Optional[str]:
 
 @app.get("/api/{sensor_type}")
 async def get_all_sensor_data(
+    request: Request,
     sensor_type: str,
-    user_id: str = Depends(get_current_user),
     order_by: Optional[str] = Query(None, alias="order-by"),
     start_date: Optional[str] = Query(None, alias="start-date"),
     end_date: Optional[str] = Query(None, alias="end-date")
@@ -317,6 +516,23 @@ def get_current_user_id(response: Response) -> int:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return int(user_id)
 
+@app.get("/devices")
+async def get_devices(request: Request):
+    user_id = await authenticate(request)
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+
+    try:
+        cursor.execute('''
+            SELECT * FROM devices WHERE user_id = %s
+        ''', (user_id,))
+        devices = cursor.fetchall()
+        return [{"mac_address": device["device_id"]} for device in devices]
+    finally:
+        cursor.close()
+        conn.close()
 
 
 @app.post("/signup")
@@ -424,11 +640,13 @@ async def login(
 
 @app.post("/api/{sensor_type}")
 async def insert_sensor_data(
+    request: Request,
     sensor_type: str,
-    data: SensorData,
-    user_id: str = Depends(get_current_user)
-    
+    data: SensorData,    
 ):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
     """Insert new sensor data."""
     if sensor_type not in ["temperature", "humidity", "light"]:
         raise HTTPException(status_code=404, detail="Invalid sensor type")
@@ -439,8 +657,8 @@ async def insert_sensor_data(
     try:
         # Verify device belongs to user
         cursor.execute('''
-            SELECT device_id FROM devices 
-            WHERE user_id = %s AND device_id = %s
+            SELECT mac_address FROM devices 
+            WHERE user_id = %s AND mac_address = %s
         ''', (user_id, data.device_id))
         if not cursor.fetchone():
             raise HTTPException(status_code=403, detail="Device not authorized")
@@ -459,10 +677,13 @@ async def insert_sensor_data(
 
 @app.get("/api/{sensor_type}/{id}")
 async def get_sensor_data(
+    request: Request,
     sensor_type: str,
     id: int,
-    user_id: str = Depends(get_current_user)
 ):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
     """Get a specific sensor reading by ID."""
     if sensor_type not in ["temperature", "humidity", "light"]:
         raise HTTPException(status_code=404, detail="Invalid sensor type")
@@ -473,7 +694,7 @@ async def get_sensor_data(
     try:
         query = f"""
             SELECT s.* FROM {sensor_type} s
-            JOIN devices d ON s.device_id = d.device_id
+            JOIN devices d ON s.device_id = d.mac_address
             WHERE s.id = %s AND d.user_id = %s
         """
         cursor.execute(query, (id, user_id))
@@ -489,11 +710,14 @@ async def get_sensor_data(
 
 @app.put("/api/{sensor_type}/{id}")
 async def update_sensor_data(
+    request: Request,
     sensor_type: str,
     id: int,
     data: SensorData,
-    user_id: str = Depends(get_current_user)
 ):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
     """Update an existing sensor reading."""
     if sensor_type not in ["temperature", "humidity", "light"]:
         raise HTTPException(status_code=404, detail="Invalid sensor type")
@@ -504,8 +728,8 @@ async def update_sensor_data(
     try:
         # Verify device belongs to user
         cursor.execute('''
-            SELECT device_id FROM devices 
-            WHERE user_id = %s AND device_id = %s
+            SELECT mac_address FROM devices 
+            WHERE user_id = %s AND mac_address = %s
         ''', (user_id, data.device_id))
         if not cursor.fetchone():
             raise HTTPException(status_code=403, detail="Device not authorized")
@@ -529,7 +753,7 @@ async def update_sensor_data(
         params.extend([id, user_id])
         query = f"""
             UPDATE {sensor_type} s
-            JOIN devices d ON s.device_id = d.device_id
+            JOIN devices d ON s.device_id = d.mac_address
             SET {', '.join(updates)}
             WHERE s.id = %s AND d.user_id = %s
         """
@@ -597,10 +821,13 @@ async def add_temp(data: TemperatureData):
 
 @app.delete("/api/{sensor_type}/{id}")
 async def delete_sensor_data(
+    request: Request,
     sensor_type: str,
     id: int,
-    user_id: str = Depends(get_current_user)
 ):
+    user_id = await authenticate(request)
+    if user_id is None:
+        return RedirectResponse(url="/login", status_code=302)
     """Delete a sensor reading."""
     if sensor_type not in ["temperature", "humidity", "light"]:
         raise HTTPException(status_code=404, detail="Invalid sensor type")
@@ -685,6 +912,7 @@ async def weather(city: str = Form(...)):
                 }
     return {"error": "Data not found"}
 
-# if __name__ == "__main__":
-#    import uvicorn
-#    uvicorn.run(app="app.main:app", host="0.0.0.0", port=80, reload=True)
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app="app.main:app", host="0.0.0.0", port=80, reload=True)
+
